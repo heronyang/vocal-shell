@@ -1,7 +1,7 @@
 # Makefile: to list out common commands for this pebble app
 PHONE_IP=192.168.1.39 # this varies
 
-build: src/pebble.c
+build: src/*.c src/*.h
 	pebble build
 
 run: build

@@ -14,4 +14,4 @@ let g:syntastic_enable_signs = 0
 set shiftwidth=2
 
 " Shortcuts
-map <leader>m :w<CR><CR>!make run<CR>
+map <leader>m :w<CR>!make run<CR>

@@ -1,0 +1,6 @@
+#define VS_MULTIPLE_CHOICE_MAX 3
+#define VS_RETURN_ERROR -1
+
+#define VS_SLEEP_FOR_READ_SECOND 3
+
+#define VS_TEXT_SIZE 256
