@@ -10,3 +10,8 @@ let g:syntastic_check_on_open = 0
 let g:syntastic_check_on_wq = 0
 let g:syntastic_enable_signs = 0
 
+" Use 2 spaces for tabs
+set shiftwidth=2
+
+" Shortcuts
+map <leader>m :w<CR><CR>!make run<CR>

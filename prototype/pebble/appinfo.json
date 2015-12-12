@@ -1,7 +1,7 @@
 {
   "uuid": "11c9e75f-e405-4c70-a7c9-662c168b4130",
-  "shortName": "pebble",
-  "longName": "pebble",
+  "shortName": "vocalshell",
+  "longName": "Vocal Shell",
   "companyName": "Vocal Shell",
   "versionLabel": "1.0",
   "sdkVersion": "3",
@@ -10,7 +10,6 @@
     "watchface": false
   },
   "appKeys": {
-    "dummy": 0
   },
   "resources": {
     "media": []
