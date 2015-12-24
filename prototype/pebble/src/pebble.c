@@ -89,6 +89,20 @@ static void multiple_choice_timer_handler(void *context) {
   dictation_session_start(s_multiple_choice_dictation_session);
 }
 
+static void show_on_screen_for_seconds_handler(void *context) {
+
+}
+
+void show_on_screen_for_seconds(char *text, int seconds) {
+  static char buf[VS_TEXT_SIZE] = {0};
+  strcpy(buf, text);
+
+  text_layer_set_text(text_layer, buf);
+
+  // Freeze
+  app_timer_register(seconds * 1000, show_on_screen_for_seconds_handler, NULL);
+}
+
 void multiple_choice_init(int n_choice, char **choices, void (*responsed_handler)(int)) {
 
   int i;
@@ -102,7 +116,6 @@ void multiple_choice_init(int n_choice, char **choices, void (*responsed_handler
   VS_Multiple_Choices_Reponsed_Handler = responsed_handler;
   VS_Multiple_Choices = choices;
   VS_Multiple_Choices_N = n_choice;
-
 
   // Show on screen
   static char buf[VS_TEXT_SIZE] = {0};
@@ -165,6 +178,8 @@ int main(void) {
   init();
 
   /* TODO: this part should be in vs_app_body */
+  show_on_screen_for_seconds_handler("Hi, welcome to notificaion!\nWhat can I help?", VS_SLEEP_FOR_READ_SECOND);
+
   char *choices [] = {"apple", "banana", "cat"};
   int n_choice = 3;
   multiple_choice_init(n_choice, choices, &my_multiple_choice_reponse_handler);
