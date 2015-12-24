@@ -8,6 +8,8 @@
 
 #include "continuous.h"
 
+#define KWS_THREASHOLD "1e-15f"
+
 static ps_decoder_t *ps;
 static cmd_ln_t *config;
 
@@ -20,17 +22,18 @@ int is_valid_phrase_callback(const char *phrase) {
 
 void recognized_callback(const char *phrase) {
     fprintf(stderr, "Recognized (callback): %s\n", phrase);
+    // TODO: customize mp3 player for different platform
+    system("mpg123 ./sounds/start.mp3");
 }
 
 void kws_main(int argc, char *argv[]) {
 
-    // char const *cfg;
-    // config = cmd_ln_parse_r(NULL, cont_args_def, argc, argv, TRUE);
     config = cmd_ln_init(NULL, ps_args(), TRUE,
             "-hmm", MODELDIR "/en-us/en-us",
             "-dict", "./data/magic_phrase/d.dic",
             "-kws", "./data/magic_phrase/words.txt",
-            "-kws_threshold", "1e-6f",
+            "-kws_threshold", KWS_THREASHOLD,
+            "-logfn", "./log",
             NULL);
 
     ps_default_search_args(config);
