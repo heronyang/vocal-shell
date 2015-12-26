@@ -1,0 +1,55 @@
+Language model created by QuickLM on Sat Dec 26 04:17:10 EST 2015
+Copyright (c) 1996-2010 Carnegie Mellon University and Alexander I. Rudnicky
+
+The model is in standard ARPA format, designed by Doug Paul while he was at MITRE.
+
+The code that was used to produce this language model is available in Open Source.
+Please visit http://www.speech.cs.cmu.edu/tools/ for more information
+
+The (fixed) discount mass is 0.5. The backoffs are computed using the ratio method.
+This model based on a corpus of 3 sentences and 10 words
+
+\data\
+ngram 1=10
+ngram 2=12
+ngram 3=10
+
+\1-grams:
+-1.0280 </s> -0.3010
+-1.0280 <s> -0.2583
+-1.2041 ALL -0.2430
+-1.5051 APP -0.2583
+-1.5051 DISMISS -0.2730
+-1.5051 NOTIFICATION -0.2872
+-1.5051 NOTIFICATIONS -0.2583
+-1.5051 OF -0.2872
+-1.5051 ONE -0.2872
+-1.2041 READ -0.2583
+
+\2-grams:
+-0.7782 <s> DISMISS 0.0000
+-0.4771 <s> READ 0.0000
+-0.6021 ALL </s> -0.3010
+-0.6021 ALL NOTIFICATIONS 0.0000
+-0.3010 APP </s> -0.3010
+-0.3010 DISMISS ALL -0.1761
+-0.3010 NOTIFICATION OF 0.0000
+-0.3010 NOTIFICATIONS </s> -0.3010
+-0.3010 OF ONE 0.0000
+-0.3010 ONE APP 0.0000
+-0.6021 READ ALL -0.1761
+-0.6021 READ NOTIFICATION 0.0000
+
+\3-grams:
+-0.3010 <s> DISMISS ALL
+-0.6021 <s> READ ALL
+-0.6021 <s> READ NOTIFICATION
+-0.3010 ALL NOTIFICATIONS </s>
+-0.3010 DISMISS ALL </s>
+-0.3010 NOTIFICATION OF ONE
+-0.3010 OF ONE APP
+-0.3010 ONE APP </s>
+-0.3010 READ ALL NOTIFICATIONS
+-0.3010 READ NOTIFICATION OF
+
+\end\
