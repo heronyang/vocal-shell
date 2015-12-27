@@ -64,6 +64,14 @@
 
 #include "continuous.h"
 
+/* Helper Functions */
+int is_valid_phrase(const char *phrase) {
+    if(strlen(phrase) <= 1) {
+        return 0;
+    }
+    return 1;
+}
+
 /* Sleep for specified msec */
 void sleep_msec(int32 ms) {
 
@@ -84,7 +92,7 @@ void sleep_msec(int32 ms) {
  *        print utterance result;
  *     }
  */
-const char *recognize_from_microphone(ps_decoder_t *ps, cmd_ln_t *config, void (*response_callback)(const char *phrase), int (*legal_check_callback)(const char *phrase)) {
+const char *recognize_from_microphone(ps_decoder_t *ps, cmd_ln_t *config) {
 
     ad_rec_t *ad;
     int16 adbuf[2048];
@@ -101,6 +109,7 @@ const char *recognize_from_microphone(ps_decoder_t *ps, cmd_ln_t *config, void (
 
     if (ps_start_utt(ps) < 0)
         E_FATAL("Failed to start utterance\n");
+
     utt_started = FALSE;
     printf("READY....\n");
 
@@ -119,16 +128,15 @@ const char *recognize_from_microphone(ps_decoder_t *ps, cmd_ln_t *config, void (
             hyp = ps_get_hyp(ps, NULL );
             if (hyp != NULL) {
                 printf("%s\n", hyp);
-                if(legal_check_callback(hyp)) {
+                if(is_valid_phrase(hyp)) {
                     fprintf(stderr, "valid phrase\n");
 
                     /* success, return */
-                    if(response_callback) {
+                    if(is_valid_phrase(hyp)) {
                         fprintf(stderr, "running custom callback\n");
-                        response_callback(hyp);
+                        ad_close(ad);
+                        return hyp;
                     }
-                    ad_close(ad);
-                    return hyp;
 
                 } else {
                     fprintf(stderr, "invalid phrase\n");

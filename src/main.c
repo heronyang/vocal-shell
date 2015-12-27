@@ -1,30 +1,32 @@
-#include <sphinxbase/err.h>
-#include <sphinxbase/ad.h>
-
-#include <pocketsphinx.h>
-
 #include <stdio.h>
 #include <string.h>
 
 #include <time.h>
 
+#include <sphinxbase/err.h>
+#include <sphinxbase/ad.h>
+
+#include <pocketsphinx.h>
+
 #include "continuous.h"
 
 #define KWS_THREASHOLD "1e-20f"
-#define KWS_THREASHOLD_2 "1e-16f"
 
 #define WORD_SIZE 127
 #define CHOICE_SIZE 256
 #define CHOICE_N_MAX 5
 #define SAY_SIZE_MAX 2048
+#define FILEPATH_SIZE_MAX 1024
 
 #define PLAY_SOUND_COMMAND "mpg123 "
 #define TTS_COMMAND "say -v \"Kathy\" "
 
+#define SUCCESS 1
+#define FAILED -1
+
 /* Prototypes */
-int app_notification();
-int app_time();
-int app_music();
+int setupPS(const char *vocal_data_folder_path);
+void freePS();
 
 int is_valid_phrase_callback(const char *phrase);
 void vs_say(const char *sentence);
@@ -34,14 +36,48 @@ const char *vs_select_app();
 int vs_run_app(const char *app_name);
 void vs_open_phone_app(const char *phone_app_name);
 
+int app_notification();
+int app_time();
+int app_music();
 
-/* Helper Functions */
-int is_valid_phrase_callback(const char *phrase) {
-    if(strlen(phrase) <= 1) {
-        return 0;
+//
+static ps_decoder_t *ps;
+static cmd_ln_t *config;
+
+int setupPS(const char *vocal_data_folder_path) {
+
+    char lm_filepath[FILEPATH_SIZE_MAX],
+         dic_filepath[FILEPATH_SIZE_MAX],
+         words_filepath[FILEPATH_SIZE_MAX];
+    sprintf(lm_filepath, "%s/l.lm", vocal_data_folder_path);
+    sprintf(dic_filepath, "%s/d.dic", vocal_data_folder_path);
+    sprintf(words_filepath, "%s/words.txt", vocal_data_folder_path);
+
+    config = cmd_ln_init(NULL, ps_args(), TRUE,
+            "-hmm", MODELDIR "/en-us/en-us",
+            "-lm", lm_filepath,
+            "-dict", dic_filepath,
+            "-kws", words_filepath,
+            "-kws_threshold", KWS_THREASHOLD,
+            "-logfn", "./log",
+            NULL);
+
+    ps_default_search_args(config);
+    ps = ps_init(config);
+    if (ps == NULL) {
+        cmd_ln_free_r(config);
+        return FAILED;
     }
-    return 1;
+
+    return SUCCESS;
+
 }
+
+void freePS() {
+    ps_free(ps);
+    cmd_ln_free_r(config);
+}
+
 
 /* Vocal Shell Functions */
 void vs_say(const char *sentence) {
@@ -56,31 +92,17 @@ int vs_ask_yes_no(const char *question) {
     /* Say the question to the user */
     vs_say(question);
 
-    /* KWS setups */
-    ps_decoder_t *ps;
-    cmd_ln_t *config;
-
-    config = cmd_ln_init(NULL, ps_args(), TRUE,
-            "-hmm", MODELDIR "/en-us/en-us",
-            "-dict", "./data/yes_no/d.dic",
-            "-kws", "./data/yes_no/words.txt",
-            "-kws_threshold", KWS_THREASHOLD_2,
-            "-logfn", "./log",
-            NULL);
-
-    ps_default_search_args(config);
-    ps = ps_init(config);
-    if (ps == NULL) {
-        cmd_ln_free_r(config);
-        return -1;
+    /* Setup PS configs */
+    if(setupPS("./data/yes_no/") != SUCCESS) {
+        return FAILED;
     }
 
     /* KWS */
     const char *phrase;
-    phrase = recognize_from_microphone(ps, config, NULL, is_valid_phrase_callback);
+    phrase = recognize_from_microphone(ps, config);
 
     /* Handle response */
-    int response = -1;
+    int response = FAILED;
     if(phrase) {
         if(strstr(phrase, "YES")) {
             response = 1;
@@ -89,16 +111,18 @@ int vs_ask_yes_no(const char *question) {
         }
     }
 
-    ps_free(ps);
-    cmd_ln_free_r(config);
+    freePS();
 
     return response;
 }
 
-int vs_ask_multiple_choice(char *dict_file_path, char *question_list_file_path) {
+int vs_ask_multiple_choice(const char *vocal_data_folder_path) {
+
+    char words_filepath[FILEPATH_SIZE_MAX];
+    sprintf(words_filepath, "%s/words.txt", vocal_data_folder_path);
 
     /* Load choices */
-    FILE *fin = fopen(question_list_file_path, "r");
+    FILE *fin = fopen(words_filepath, "r");
     char choices[CHOICE_N_MAX][CHOICE_SIZE], choice[CHOICE_SIZE];
     int n = 0;
     while(fgets(choice, CHOICE_SIZE, fin) != NULL) {
@@ -121,30 +145,16 @@ int vs_ask_multiple_choice(char *dict_file_path, char *question_list_file_path) 
     vs_say(hint_sentence);
 
     /* KWS setups */
-    ps_decoder_t *ps;
-    cmd_ln_t *config;
-
-    config = cmd_ln_init(NULL, ps_args(), TRUE,
-            "-hmm", MODELDIR "/en-us/en-us",
-            "-dict", dict_file_path,
-            "-kws", question_list_file_path,
-            "-kws_threshold", KWS_THREASHOLD_2,
-            "-logfn", "./log",
-            NULL);
-
-    ps_default_search_args(config);
-    ps = ps_init(config);
-    if (ps == NULL) {
-        cmd_ln_free_r(config);
-        return -1;
+    if(setupPS(vocal_data_folder_path) != SUCCESS) {
+        return FAILED;
     }
 
     /* KWS */
     const char *phrase;
-    phrase = recognize_from_microphone(ps, config, NULL, is_valid_phrase_callback);
+    phrase = recognize_from_microphone(ps, config);
 
     /* Handle response */
-    int ans = -1;
+    int ans = FAILED;
     if(phrase) {
         for( i = 0; i < n; i++ ) {
             if(strstr(choices[i], phrase)) {
@@ -153,8 +163,7 @@ int vs_ask_multiple_choice(char *dict_file_path, char *question_list_file_path) 
         }
     }
 
-    ps_free(ps);
-    cmd_ln_free_r(config);
+    freePS();
 
     return ans;
 }
@@ -168,28 +177,13 @@ void vs_open_phone_app(const char *phone_app_name) {
 
 void vs_init_wait() {
 
-    ps_decoder_t *ps;
-    cmd_ln_t *config;
-
-    /* KWS setups */
-    config = cmd_ln_init(NULL, ps_args(), TRUE,
-            "-hmm", MODELDIR "/en-us/en-us",
-            "-dict", "./data/magic_phrase/d.dic",
-            "-kws", "./data/magic_phrase/words.txt",
-            "-kws_threshold", KWS_THREASHOLD,
-            "-logfn", "./log",
-            NULL);
-
-    ps_default_search_args(config);
-    ps = ps_init(config);
-    if (ps == NULL) {
-        cmd_ln_free_r(config);
+    if(setupPS("./data/magic_phrase/") != SUCCESS) {
         return;
     }
 
     /* KWS */
     const char *phrase;
-    phrase = recognize_from_microphone(ps, config, NULL, is_valid_phrase_callback);
+    phrase = recognize_from_microphone(ps, config);
 
     /* Handle response */
     if(phrase) {
@@ -197,45 +191,31 @@ void vs_init_wait() {
         system(PLAY_SOUND_COMMAND "./sounds/start.mp3");
     }
 
-    ps_free(ps);
-    cmd_ln_free_r(config);
+    freePS();
 
 }
 
 void vs_end() {
+
     fprintf(stderr, "end\n");
     system(PLAY_SOUND_COMMAND "./sounds/end.mp3");
+
 }
 
 const char *vs_select_app() {
 
     vs_say("which app");
 
-    ps_decoder_t *ps;
-    cmd_ln_t *config;
-
-    /* KWS setups */
-    config = cmd_ln_init(NULL, ps_args(), TRUE,
-            "-hmm", MODELDIR "/en-us/en-us",
-            "-dict", "./data/apps/d.dic",
-            "-kws", "./data/apps/words.txt",
-            "-kws_threshold", KWS_THREASHOLD_2,
-            "-logfn", "./log",
-            NULL);
-
-    ps_default_search_args(config);
-    ps = ps_init(config);
-    if (ps == NULL) {
-        cmd_ln_free_r(config);
+    if(setupPS("./data/apps/") != SUCCESS) {
         return NULL;
     }
 
     /* KWS */
     const char *phrase;
-    phrase = recognize_from_microphone(ps, config, NULL, is_valid_phrase_callback);
+    phrase = recognize_from_microphone(ps, config);
 
-    /* Handle response */
-    return (phrase)? phrase: NULL;
+    freePS();
+    return phrase;
 
 }
 
@@ -254,8 +234,7 @@ int vs_run_app(const char *app_name) {
 
 /* Apps */
 int app_notification() {
-    int selected_feature_ind = vs_ask_multiple_choice("./data/multiple_choice/notification_features/d.dic",
-            "./data/multiple_choice/notification_features/words.txt");
+    int selected_feature_ind = vs_ask_multiple_choice("./data/multiple_choice/notification_features/");
 
     if(selected_feature_ind == 0) { // READ ALL NOTIFICATIONS
         vs_say("You have 2 notifications, first notification: Facebook, your friend john liked your photo. second notification: CNN, one aircraft had been found in Mexico");
@@ -276,19 +255,21 @@ int app_time() {
 
     time ( &rawtime );
     timeinfo = localtime ( &rawtime );
-    sprintf(result, " Current local time and date is %s", asctime (timeinfo));
+    sprintf(result, " It is %d:%02d", timeinfo->tm_hour, timeinfo->tm_min);
     vs_say(result);
 
     return 0;
 }
 
 int app_music() {
+
     if(vs_ask_yes_no("Do you want to start playing music randomly?")) {
         vs_open_phone_app("music");
     } else {
         vs_say("okay bye");
     }
     return 0;
+
 }
 
 /* Main */
@@ -298,7 +279,7 @@ int main(int argc, char *argv[]) {
 
         vs_init_wait();
         const char *app_name = vs_select_app();
-        if(app_name)    vs_run_app(app_name);
+        vs_run_app(app_name);
         vs_end();
 
     }
